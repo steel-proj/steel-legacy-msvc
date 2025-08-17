@@ -1,0 +1,43 @@
+#pragma once
+
+#include <string>
+#include <memory>
+
+#include "../ast_node.h"
+#include "expression.h"
+#include "identifier_expression.h"
+
+class member_expression : public expression, public std::enable_shared_from_this<member_expression> {
+public:
+	ENABLE_ACCEPT(member_expression)
+
+	member_expression(std::shared_ptr<expression> object, std::string member)
+		: object(object), member(member) {
+	}
+
+	std::string string(int indent) const override {
+		std::string ind = indent_s(indent);
+		std::string result = ind + "Member Expression:\n";
+		result += ind + " Left Identifier:\n";
+		if (object) {
+			result += object->string(indent + 1) + "\n";
+		}
+		else {
+			result += ind + "  <None>\n";
+		}
+		result += ind + " Member Identifier:\n";
+		result += ind + "  \"" + member + "\"\n";
+		return result;
+	}
+
+	virtual type_ptr type() const override {
+		return decleration->type;
+	}
+	bool is_rvalue() const override {
+		return false;
+	}
+
+	std::shared_ptr<expression> object;
+	std::string member;
+	std::shared_ptr<variable_decleration> decleration;
+};
