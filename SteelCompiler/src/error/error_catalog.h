@@ -2,8 +2,11 @@
 
 #include <string>
 
+#include "error.h"
+
 enum error_code {
-    ERR_ID_EXPECTED,
+    ERR_SUCCESS = 0,
+	ERR_ID_EXPECTED,
     ERR_LBRACE_EXPECTED,
     ERR_RBRACE_EXPECTED,
     ERR_LBRACKET_EXPECTED,
@@ -84,6 +87,11 @@ enum error_code {
     ERR_MAIN_OVERLOADED,
     ERR_NO_MATCHING_METHOD,
     ERR_INTERNAL_ERROR,
+    ERR_MODULE_NOT_FOUND,
+    ERR_IMPORT_BAD_POS,
+    ERR_NAME_COLLISION,
+    ERR_UNTERMINATED_COMMENT,
+    ERR_TYPENAME_EXPECTED,
 };
 
 enum warning_code {
@@ -94,11 +102,6 @@ enum warning_code {
     WARN_VARIABLE_ASSIGNED_UNUSED,
     WARN_UNREACHABLE_CODE,
     WARN_CAST_UNNEEDED,
-};
-
-struct error_info {
-    std::string code;
-    std::string message;
 };
 
 struct error_catalog {
@@ -122,32 +125,32 @@ struct error_catalog {
             {"S16", "Expected type name for member"},
             {"S17", "Nested function is not allowed"},
             {"S18", "Parameters cannot be of type void"},
-            {"S19", "Function \"%s\" is already defined"},
+            {"S19", "Function '%s' is already defined"},
             {"S20", "Nested constructor is not allowed"},
             {"S21", "Constructor must be defined within a type"},
             {"S22", "Constructor with the same parameters already exists"},
             {"S23", "Variables cannot be of type void"},
-            {"S24", "Variable \"%s\" already declared in the same scope"},
-            {"S25", "Type \"%s\" is already defined"},
+            {"S24", "Variable '%s' already declared in the same scope"},
+            {"S25", "Type '%s' is already defined"},
             {"S26", "Nested type declaration is not allowed"},
             {"S27", "Structs cannot contain methods"},
             {"S28", "Interfaces cannot contain constructors"},
             {"S29", "Interfaces cannot contain member variables"},
-            {"S30", "Duplicate parameter \"%s\""},
-            {"S31", "Unknown identifier \"%s\""},
-            {"S32", "Unknown function \"%s\""},
-            {"S33", "Unknown type \"%s\""},
-            {"S34", "No constructor for type \"%s\" matches argument types provided"},
+            {"S30", "Duplicate parameter '%s'"},
+            {"S31", "Unknown identifier '%s'"},
+            {"S32", "Unknown function '%s'"},
+            {"S33", "Unknown type '%s'"},
+            {"S34", "No constructor for type '%s' matches argument types provided"},
             {"S35", "Too many values in initializer list"},
             {"S36", "Type mismatch in initializer list"},
             {"S37", "Interface initializer is not allowed"},
             {"S38", "Array initializers are unsupported"},
             {"S39", "Initializer list can only be used with custom types or arrays"},
-            {"S40", "Variable of type \"%s\" cannot be assigned a value of type \"%s\""},
+            {"S40", "Variable of type '%s' cannot be assigned a value of type \"%s\""},
             {"S41", "No built-in operator matches the types provided"},
-            {"S42", "The type \"%s\" is not defined"},
+            {"S42", "The type '%s' is not defined"},
             {"S43", "Expected member name"},
-            {"S44", "The type \"%s\" has no member named \"%s\""},
+            {"S44", "The type '%s' has no member named '%s'"},
             {"S45", "No built-in or user-defined operator matches the types provided"},
             {"S46", "Logical NOT operator can only be applied to boolean expressions"},
             {"S47", "NEGATE operator can only be applied to integer or float expressions"},
@@ -155,18 +158,18 @@ struct error_catalog {
             {"S49", "Decrement operator can only be applied to integer expressions"},
             {"S50", "Base expression is not indexable"},
             {"S51", "Indexer must be an integer expression"},
-            {"S52", "No function \"%s\" matches the arguments provided"},
-            {"S53", "No constructor for \"%s\" matches the arguments provided"},
+            {"S52", "No function '%s' matches the arguments provided"},
+            {"S53", "No constructor for '%s' matches the arguments provided"},
             {"S54", "If statement condition must be a boolean expression"},
             {"S55", "For loop condition must be a boolean expression"},
             {"S56", "While loop condition must be a boolean expression"},
             {"S65", "Return statement outside of function or constructor"},
             {"S66", "Constructors cannot return a value"},
-            {"S67", "Void function \"%s\" cannot return a value"},
-            {"S68", "Function \"%s\" must return a value"},
-            {"S69", "Function \"%s\" returns type \"%s\" but got \"%s\""},
+            {"S67", "Void function '%s' cannot return a value"},
+            {"S68", "Function '%s' must return a value"},
+            {"S69", "Function '%s' returns type '%s' but got '%s'"},
             {"S70", "Not all code paths return a value"},
-            {"S71", "The type \"%s\" has no method named \"%s\""},
+            {"S71", "The type '%s' has no method named '%s'"},
             {"S72", "'this' can only be used inside a non-static method or constructor"},
             {"S78", "Invalid float literal: multiple decimal points"},
             {"S79", "Invalid float literal: no digits after decimal point"},
@@ -176,7 +179,7 @@ struct error_catalog {
             {"S83", "Expected expression"},
             {"S84", "Unexpected identifier"},
             {"S85", "Expected a declaration"},
-            {"S86", "Use of uninitialized variable \"%s\""},
+            {"S86", "Use of uninitialized variable '%s'"},
             {"S87", "Member access not allowed on non-composite type '%s'"},
             {"S88", "Expected parameter"},
             {"S89", "No built-in or user-defined conversion exists from '%s' to '%s'"},
@@ -185,8 +188,13 @@ struct error_catalog {
             {"S92", "Main function cannot be overloaded"},
             {"S93", "No method '%s' matches the arguments provided"},
             {"S94", "An internal compiler error occurred, phase: '%s', message: '%s'"},
+            {"S95", "Module '%s' not found"},
+            {"S96", "Import statements can only appear at the top-level (cannot exist within any scope)"},
+            {"S97", "Name collision, '%s' is defined in multiple places"},
+            {"S98", "Unterminated mutli-line comment"},
+            {"S99", "Type name expected"},
         };
-        return errors[code];
+        return errors[code - 1];
     }
 
     static const error_info& get_warning_info(warning_code code) {

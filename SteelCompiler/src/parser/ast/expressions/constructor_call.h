@@ -4,8 +4,8 @@
 #include <memory>
 
 #include "expression.h"
-#include "../declerations/function_decleration.h"
-#include "../declerations/type_decleration.h"
+#include "../declarations/function_declaration.h"
+#include "../declarations/type_declaration.h"
 #include "../../parser_utils.h"
 #include "../../types/types.h"
 
@@ -51,6 +51,6 @@ public:
 
 	std::string type_name;
 	std::vector<std::shared_ptr<expression>> args;
-	std::shared_ptr<constructor_decleration> decleration;
-	std::shared_ptr<type_decleration> type_decl;
+	std::shared_ptr<constructor_declaration> declaration;
+	std::shared_ptr<type_declaration> type_decl;
 };

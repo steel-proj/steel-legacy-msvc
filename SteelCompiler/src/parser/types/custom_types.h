@@ -2,23 +2,25 @@
 
 #include "types.h"
 
-class type_decleration;
+class type_declaration;
 
 class custom_type : public data_type {
 public:
-	custom_type(std::shared_ptr<const type_decleration> decleration, std::string identifier)
-		: decleration(decleration), identifier(identifier) {
+	custom_type(std::shared_ptr<const type_declaration> declaration, std::string identifier)
+		: declaration(declaration), identifier(identifier) {
+		assign_id();
 	}
 	custom_type(std::string identifier)
-		: decleration(nullptr), identifier(identifier) {
+		: declaration(nullptr), identifier(identifier) {
 		// this is used for types that we know exist but
-		// are not at the stage where the decleration is matched
+		// are not at the stage where the declaration is matched
+		assign_id();
 	}
 
 	bool operator==(const data_type& other) const override {
 		if (auto custom = dynamic_cast<const custom_type*>(&other)) {
-			// easy check - no data types are allowed to have the same identifier
-			return identifier == custom->identifier;
+			// compare typeid
+			return id == custom->type_id();
 		}
 		return false;
 	}
@@ -39,6 +41,18 @@ public:
 		return identifier;
 	}
 
-	std::shared_ptr<const type_decleration> decleration;
+	unsigned int type_id() const {
+		return id;
+	}
+
+	std::shared_ptr<const type_declaration> declaration;
 	std::string identifier;
+
+private:
+	inline void assign_id() {
+		static unsigned int next_id = 100;
+		id = next_id++;
+	}
+
+	unsigned int id;
 };

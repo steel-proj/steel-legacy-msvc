@@ -31,7 +31,10 @@ public:
 	}
 
 	virtual type_ptr type() const override {
-		return decleration->type;
+		if (!declaration || !declaration->type) {
+			return data_type::unknown;
+		}
+		return declaration->type;
 	}
 	bool is_rvalue() const override {
 		return false;
@@ -39,5 +42,5 @@ public:
 
 	std::shared_ptr<expression> object;
 	std::string member;
-	std::shared_ptr<variable_decleration> decleration;
+	std::shared_ptr<variable_declaration> declaration;
 };

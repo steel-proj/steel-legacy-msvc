@@ -31,7 +31,7 @@ public:
 	}
 
 	type_ptr type() const override {
-		return result_type;
+		return result_type ? result_type : data_type::unknown;
 	}
 	bool is_rvalue() const override {
 		return true; // initializer list always return a temporary value

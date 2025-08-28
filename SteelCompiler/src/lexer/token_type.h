@@ -21,6 +21,10 @@ enum token_type {
 	TT_RBRACE,
 	TT_LBRACKET,
 	TT_RBRACKET,
+	TT_HAT,
+	TT_AMPERSAND,
+	TT_HASH,
+	TT_DOLLAR,
 
 	// Keywords (types)
 	TT_SMALL,
@@ -49,10 +53,13 @@ enum token_type {
 	TT_NULL,
 	TT_THIS,
 	TT_BASE,
-	// Keywords (other)
+	// Keywords (modules)
 	TT_MODULE,
-	TT_EXPORT,
 	TT_IMPORT,
+	// Keywords (modifiers)
+	TT_CONST,
+	TT_STATIC,
+	TT_EXPORT,
 
 	// Operators
 	TT_ASSIGN,

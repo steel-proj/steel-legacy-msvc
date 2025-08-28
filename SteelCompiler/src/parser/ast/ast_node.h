@@ -19,7 +19,7 @@ public:
 
 	virtual void accept(ast_visitor& visitor) = 0;
 
-	position position;
+	position position = { 0, 0 };
 
 protected:
 	 std::string indent_s(int level) const {

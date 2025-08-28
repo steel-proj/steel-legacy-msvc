@@ -6,7 +6,7 @@
 
 class codegen {
 public:
-	codegen(std::shared_ptr<program> program)
+	codegen(std::shared_ptr<compilation_unit> program)
 		: program(program) {
 	}
 
@@ -14,5 +14,5 @@ public:
 	std::string generate_pseudo();
 
 private:
-	std::shared_ptr<program> program;
+	std::shared_ptr<compilation_unit> program;
 };

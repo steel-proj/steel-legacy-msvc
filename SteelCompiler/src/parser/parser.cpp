@@ -2,12 +2,13 @@
 
 #include "parser_utils.h"
 #include "../lexer/token_utils.h"
+#include "../error/error_catalog.h"
 
-void parser::parse(std::shared_ptr<program> prg) {
+void parser::parse() {
 	while (!is_at_end()) {
-		ast_ptr decl = parse_decleration();
+		ast_ptr decl = parse_declaration();
 		if (decl) {
-			prg->declerations.push_back(decl);
+			unit->declarations.push_back(decl);
 		}
 		else {
 			// if decl is null, it means an error occurred, so we skip to the next token
@@ -15,10 +16,13 @@ void parser::parse(std::shared_ptr<program> prg) {
 		}
 	}
 }
-ast_ptr parser::parse_decleration() {
-	// function/variable decleration
+ast_ptr parser::parse_declaration() {
+	current_modifiers = parse_modifiers();
+	// function/variable declaration
 	if (match_typename()) {
 		token& type_token = previous();
+
+		type_ptr type = to_data_type(type_token);
 
 		if (!match(TT_IDENTIFIER)) {
 			ERROR_TOKEN(ERR_ID_EXPECTED, peek());
@@ -28,13 +32,13 @@ ast_ptr parser::parse_decleration() {
 
 		// function or variable?
 		if (check(TT_LPAREN)) {
-			return parse_function_decleration(to_data_type(type_token), identifier_token);
+			return parse_function_declaration(to_data_type(type_token), identifier_token);
 		}
 		else {
-			return parse_variable_decleration(to_data_type(type_token), identifier_token);
+			return parse_variable_declaration(to_data_type(type_token), identifier_token);
 		}
 	}
-	// module decleration
+	// module declaration
 	else if (match(TT_MODULE)) {
 		if (!match(TT_IDENTIFIER)) {
 			ERROR_TOKEN(ERR_MODULE_NAME_EXPECTED, peek());
@@ -42,18 +46,57 @@ ast_ptr parser::parse_decleration() {
 		}
 		token& module_name_token = previous();
 
-		if (!check(TT_LBRACE)) {
+		if (!match(TT_LBRACE)) {
 			ERROR_TOKEN(ERR_LBRACE_EXPECTED, peek());
 			return nullptr;
 		}
-		ast_ptr block = parse_block();
+		
+		std::vector<ast_ptr> declarations;
+		while (!is_at_end() && !check(TT_RBRACE)) {
+			ast_ptr decl = parse_declaration();
+			if (decl) {
+				declarations.push_back(decl);
+			}
+			else {
+				// if decl is null, it means an error occurred, so we skip to the next token
+				advance();
+			}
+		}
+		if (!match(TT_RBRACE)) {
+			ERROR_TOKEN(ERR_RBRACE_EXPECTED, peek());
+			return nullptr;
+		}
 
-		return make_ast<module_decleration>(module_name_token, module_name_token.value, block);
+		return make_ast<module_declaration>(module_name_token, module_name_token.value, declarations);
 	}
-	// type decleration
+	// module import
+	else if (match(TT_IMPORT)) {
+		std::string module_name = "";
+		token& module_name_token = peek();
+
+		bool first = true;
+		do {
+			if (!match(TT_IDENTIFIER)) {
+				ERROR_TOKEN(ERR_MODULE_NAME_EXPECTED, peek());
+				return nullptr;
+			}
+
+			if (!first) module_name += ".";
+			module_name += previous().value;
+			first = false;
+		} while (match(TT_ACCESS));
+
+		if (!match(TT_SEMICOLON)) {
+			ERROR_TOKEN(ERR_SEMICOLON_EXPECTED, peek());
+			return nullptr;
+		}
+		
+		return make_ast<import_statement>(module_name_token, module_name);
+	}
+	// type declaration
 	else if (match(3, TT_STRUCT, TT_CLASS, TT_INTERFACE)) {
 		token& kind_token = previous();
-		return parse_type_decleration(kind_token);
+		return parse_type_declaration(kind_token);
 	}
 	else if (match(TT_IDENTIFIER)) {
 		// since match_typename includes custom types, this branch
@@ -65,13 +108,13 @@ ast_ptr parser::parse_decleration() {
 	}
 	return nullptr;
 }
-ast_ptr parser::parse_constructor_decleration(token& identifier_token) {
+ast_ptr parser::parse_constructor_declaration(token& identifier_token) {
 	if (!match(TT_LPAREN)) {
 		ERROR_TOKEN(ERR_LPAREN_EXPECTED, peek());
 		return nullptr;
 	}
 
-	std::vector<std::shared_ptr<variable_decleration>> parameters = parse_parameter_list(TT_RPAREN);
+	std::vector<std::shared_ptr<variable_declaration>> parameters = parse_parameter_list(TT_RPAREN);
 
 	if (!match(TT_RPAREN)) {
 		ERROR_TOKEN(ERR_RPAREN_EXPECTED, peek());
@@ -85,17 +128,17 @@ ast_ptr parser::parse_constructor_decleration(token& identifier_token) {
 
 	ast_ptr body = parse_block();
 	if (body) {
-		return make_ast<constructor_decleration>(identifier_token, parameters, body);
+		return make_ast<constructor_declaration>(identifier_token, parameters, body);
 	}
 	return nullptr;
 }
-ast_ptr parser::parse_function_decleration(type_ptr type, token& identifier_token) {
+ast_ptr parser::parse_function_declaration(type_ptr type, token& identifier_token) {
 	if (!match(TT_LPAREN)) {
 		ERROR_TOKEN(ERR_LPAREN_EXPECTED, peek());
 		return nullptr;
 	}
 
-	std::vector<std::shared_ptr<variable_decleration>> parameters = parse_parameter_list(TT_RPAREN);
+	std::vector<std::shared_ptr<variable_declaration>> parameters = parse_parameter_list(TT_RPAREN);
 
 	if (!match(TT_RPAREN)) {
 		ERROR_TOKEN(ERR_RPAREN_EXPECTED, peek());
@@ -109,11 +152,12 @@ ast_ptr parser::parse_function_decleration(type_ptr type, token& identifier_toke
 
 	ast_ptr body = parse_block();
 	if (body) {
-		return make_ast<function_decleration>(identifier_token, type, identifier_token.value, parameters, body);
+		auto decl = make_ast<function_declaration>(identifier_token, type, identifier_token.value, parameters, body);
+		return decl;
 	}
 	return nullptr;
 }
-ast_ptr parser::parse_variable_decleration(type_ptr type, token& identifier_token) {
+ast_ptr parser::parse_variable_declaration(type_ptr type, token& identifier_token) {
 	ast_ptr initializer = nullptr;
 	if (match(TT_ASSIGN)) {
 		if (check(TT_LBRACE)) {
@@ -127,9 +171,10 @@ ast_ptr parser::parse_variable_decleration(type_ptr type, token& identifier_toke
 		ERROR_TOKEN(ERR_SEMICOLON_EXPECTED, peek());
 		return nullptr;
 	}
-	return make_ast<variable_decleration>(identifier_token, type, identifier_token.value, std::dynamic_pointer_cast<expression>(initializer));
+	auto decl = make_ast<variable_declaration>(identifier_token, type, identifier_token.value, std::dynamic_pointer_cast<expression>(initializer));
+	return decl;
 }
-ast_ptr parser::parse_type_decleration(token& kind_token) {
+ast_ptr parser::parse_type_declaration(token& kind_token) {
 	if (!match(TT_IDENTIFIER)) {
 		ERROR_TOKEN(ERR_ID_EXPECTED, peek());
 		return nullptr;
@@ -137,7 +182,8 @@ ast_ptr parser::parse_type_decleration(token& kind_token) {
 	token& identifier_token = previous();
 
 	custom_type_type type_kind = kind_token.type == TT_STRUCT ? CT_STRUCT : kind_token.type == TT_CLASS ? CT_CLASS : CT_INTERFACE;
-	std::shared_ptr<type_decleration> type_decl = make_ast<type_decleration>(identifier_token, type_kind, identifier_token.value);
+	auto type_decl = make_ast<type_declaration>(identifier_token, type_kind, identifier_token.value);
+
 	if (!match(TT_LBRACE)) {
 		ERROR_TOKEN(ERR_LBRACE_EXPECTED, peek());
 		return nullptr;
@@ -150,8 +196,8 @@ ast_ptr parser::parse_type_decleration(token& kind_token) {
 		if (match_typename()) {
 			token& type_token = previous();
 			if (check(TT_LPAREN) && type_token.value == type_decl->identifier) {
-				ast_ptr ctor_decl = parse_constructor_decleration(type_token);
-				if (ctor_decl) type_decl->constructors.push_back(std::dynamic_pointer_cast<constructor_decleration>(ctor_decl));
+				ast_ptr ctor_decl = parse_constructor_declaration(type_token);
+				if (ctor_decl) type_decl->constructors.push_back(std::dynamic_pointer_cast<constructor_declaration>(ctor_decl));
 				continue; // skip to next member
 			}
 
@@ -162,12 +208,12 @@ ast_ptr parser::parse_type_decleration(token& kind_token) {
 			token& identifier_token = previous();
 
 			if (check(TT_LPAREN)) {
-				ast_ptr method = parse_function_decleration(to_data_type(type_token), identifier_token);
-				if (method) type_decl->methods.push_back(std::dynamic_pointer_cast<function_decleration>(method));
+				ast_ptr method = parse_function_declaration(to_data_type(type_token), identifier_token);
+				if (method) type_decl->methods.push_back(std::dynamic_pointer_cast<function_declaration>(method));
 			}
 			else {
-				ast_ptr member = parse_variable_decleration(to_data_type(type_token), identifier_token);
-				if (member) type_decl->fields.push_back(std::dynamic_pointer_cast<variable_decleration>(member));
+				ast_ptr member = parse_variable_declaration(to_data_type(type_token), identifier_token);
+				if (member) type_decl->fields.push_back(std::dynamic_pointer_cast<variable_declaration>(member));
 			}
 		}
 		else {
@@ -195,6 +241,40 @@ ast_ptr parser::parse_constructor_call(token& type_token) {
 
 	return make_ast<constructor_call>(type_token, type_token.value, args);
 }
+type_ptr parser::parse_type() {
+	// parse through modifiers, e.g. 'const'
+	data_type_modifier type_mods = DTM_NONE;
+	while (match(1, TT_CONST)) {
+		auto modifier = to_modifier(previous().type);
+	}
+
+	// match typename (custom or primitive)
+	if (!match_typename()) {
+		ERROR_TOKEN(ERR_TYPENAME_EXPECTED, peek());
+		return nullptr;
+	}
+	token& type_token = previous();
+	type_ptr type = to_data_type(type_token);
+
+	// parse through any pointer/array modifiers
+	while (true) {
+		if (match(TT_MULTIPLY)) {
+			type = make_ptr(type);
+		}
+		else if (match(TT_LBRACKET)) {
+			if (!match(TT_RBRACKET)) {
+				ERROR_TOKEN(ERR_RBRACKET_EXPECTED, peek());
+				return nullptr;
+			}
+			type = make_array(type);
+		}
+		else {
+			break;
+		}
+	}
+
+	return type;
+}
 ast_ptr parser::parse_parameter() {
 	// parse parameter type
 	if (!match_typename()) {
@@ -221,7 +301,7 @@ ast_ptr parser::parse_parameter() {
 
 	// TODO: allow for default values in parameters
 
-	auto param = make_ast<variable_decleration>(param_name_token, param_type, param_name_token.value);
+	auto param = make_ast<variable_declaration>(param_name_token, param_type, param_name_token.value);
 	param->is_parameter = true;
 	return param;
 }
@@ -258,7 +338,7 @@ ast_ptr parser::parse_block() {
 				return nullptr;
 			}
 			token& identifier_token = previous();
-			ast_ptr decl = parse_variable_decleration(to_data_type(type_token), identifier_token);
+			ast_ptr decl = parse_variable_declaration(to_data_type(type_token), identifier_token);
 			if (decl) block->body.push_back(decl);
 		}
 		else {
@@ -321,7 +401,7 @@ ast_ptr parser::parse_for_loop() {
 			return nullptr;
 		}
 		token& identifier_token = previous();
-		initializer = parse_variable_decleration(to_data_type(type_token), identifier_token);
+		initializer = parse_variable_declaration(to_data_type(type_token), identifier_token);
 	}
 	else if (!check(TT_SEMICOLON)) {
 		initializer = parse_expression_statement();
@@ -590,6 +670,14 @@ ast_ptr parser::parse_initializer_list() {
 	return make_ast<initializer_list>(init_token, values);
 }
 
+modifiers parser::parse_modifiers() {
+	modifiers mods = MOD_NONE;
+	while (match_modifier()) {
+		mods |= to_modifier(previous().type);
+	}
+	return mods;
+}
+
 std::vector<std::shared_ptr<expression>> parser::parse_expression_list(token_type end) {
 	std::vector<std::shared_ptr<expression>> expressions;
 	while (!is_at_end() && !check(end)) {
@@ -607,12 +695,12 @@ std::vector<std::shared_ptr<expression>> parser::parse_expression_list(token_typ
 	}
 	return expressions;
 }
-std::vector<std::shared_ptr<variable_decleration>> parser::parse_parameter_list(token_type end) {
-	std::vector<std::shared_ptr<variable_decleration>> parameters;
+std::vector<std::shared_ptr<variable_declaration>> parser::parse_parameter_list(token_type end) {
+	std::vector<std::shared_ptr<variable_declaration>> parameters;
 	while (!is_at_end() && !check(end)) {
 		ast_ptr param = parse_parameter();
 		if (param) {
-			parameters.push_back(std::dynamic_pointer_cast<variable_decleration>(param));
+			parameters.push_back(std::dynamic_pointer_cast<variable_declaration>(param));
 		}
 		else {
 			ERROR_TOKEN(ERR_PARAMETER_EXPECTED, peek());
@@ -680,6 +768,9 @@ bool parser::match_typename() {
 		return true;
 	}
 	return false;
+}
+bool parser::match_modifier() {
+	return match(3, TT_CONST, TT_STATIC, TT_EXPORT);
 }
 bool parser::match(int count, ...) {
 	va_list args;

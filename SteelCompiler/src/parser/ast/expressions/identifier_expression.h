@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "expression.h"
-#include "../declerations/variable_decleration.h"
+#include "../declarations/variable_declaration.h"
 
 class identifier_expression : public expression, public std::enable_shared_from_this<identifier_expression> {
 public:
@@ -19,12 +19,12 @@ public:
 	}
 
 	type_ptr type() const override {
-		return decleration ? decleration->type : nullptr;
+		return declaration ? declaration->type : data_type::unknown;
 	}
 	bool is_rvalue() const override {
 		return false;
 	}
 
 	std::string identifier;
-	std::shared_ptr<variable_decleration> decleration;
+	std::shared_ptr<variable_declaration> declaration;
 };

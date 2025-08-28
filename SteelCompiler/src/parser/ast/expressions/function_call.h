@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "expression.h"
-#include "../declerations/function_decleration.h"
+#include "../declarations/function_declaration.h"
 #include "../../parser_utils.h"
 #include "../../types/types.h"
 
@@ -14,13 +14,13 @@ public:
 	ENABLE_ACCEPT(function_call)
 
 	function_call(std::string function_name, std::vector<std::shared_ptr<expression>> args)
-		: identifier(function_name), args(args), decleration(nullptr) {
+		: identifier(function_name), args(args), declaration(nullptr) {
 	}
 	function_call(std::shared_ptr<expression> callee, std::string name, std::vector<std::shared_ptr<expression>> args)
-		: identifier(name), callee(callee), args(args), decleration(nullptr) {
+		: identifier(name), callee(callee), args(args), declaration(nullptr) {
 	}
 	function_call(std::shared_ptr<expression> callee, std::vector<std::shared_ptr<expression>> args)
-		: identifier(""), callee(callee), args(args), decleration(nullptr) {
+		: identifier(""), callee(callee), args(args), declaration(nullptr) {
 	}
 
 	std::string string(int indent) const override {
@@ -39,10 +39,10 @@ public:
 	}
 
 	type_ptr type() const override {
-		if (decleration == nullptr) {
-			return nullptr;
+		if (!declaration) {
+			return data_type::unknown;
 		}
-		return decleration->return_type;
+		return declaration->return_type;
 	}
 	bool is_rvalue() const override {
 		return true; // function calls always return a temporary value
@@ -55,6 +55,6 @@ public:
 	std::string identifier;
 	std::shared_ptr<expression> callee;
 	std::vector<std::shared_ptr<expression>> args;
-	std::vector<std::shared_ptr<function_decleration>> decleration_candidates;
-	std::shared_ptr<function_decleration> decleration;
+	std::vector<std::shared_ptr<function_declaration>> declaration_candidates;
+	std::shared_ptr<function_declaration> declaration;
 };

@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "expression.h"
-#include "../declerations/variable_decleration.h"
+#include "../declarations/variable_declaration.h"
 
 class this_expression : public expression, public std::enable_shared_from_this<this_expression> {
 public:

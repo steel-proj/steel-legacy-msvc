@@ -1,6 +1,11 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
+#include "../lexer/token.h"
+
+class compilation_unit;
 
 enum error_type {
 	ERR_ERROR,
@@ -8,14 +13,14 @@ enum error_type {
 	ERR_INFO,
 };
 
-class error {
-public:
-	error(const std::string& code, const std::string& message, size_t line, size_t column, error_type type = ERR_ERROR)
-		: code(code), message(message), line(0), column(0), type(type) {
-	}
-
+struct error_info {
 	std::string code;
 	std::string message;
-	size_t line, column;
+};
+
+struct error {
+	error_info info;
+	position pos;
 	error_type type;
+	std::shared_ptr<compilation_unit> unit;
 };

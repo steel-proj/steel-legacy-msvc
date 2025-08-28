@@ -2,25 +2,25 @@
 
 #include "ast.h"
 
-void ast_visitor::visit(std::shared_ptr<program> program) {
-	for (const auto& decl : program->declerations) {
+void ast_visitor::visit(std::shared_ptr<compilation_unit> program) {
+	for (const auto& decl : program->declarations) {
 		decl->accept(*this);
 	}
 }
 
-void ast_visitor::visit(std::shared_ptr<function_decleration> func) {
+void ast_visitor::visit(std::shared_ptr<function_declaration> func) {
 	func->body->accept(*this);
 }
 
-void ast_visitor::visit(std::shared_ptr<constructor_decleration> constructor) {
+void ast_visitor::visit(std::shared_ptr<constructor_declaration> constructor) {
 	constructor->body->accept(*this);
 }
 
-void ast_visitor::visit(std::shared_ptr<variable_decleration> var) {
+void ast_visitor::visit(std::shared_ptr<variable_declaration> var) {
 
 }
 
-void ast_visitor::visit(std::shared_ptr<type_decleration> decl) {
+void ast_visitor::visit(std::shared_ptr<type_declaration> decl) {
 	for (const auto& constructor : decl->constructors) {
 		constructor->accept(*this);
 	}
@@ -35,15 +35,17 @@ void ast_visitor::visit(std::shared_ptr<type_decleration> decl) {
 	}
 }
 
-void ast_visitor::visit(std::shared_ptr<module_decleration> mod) {
+void ast_visitor::visit(std::shared_ptr<module_declaration> mod) {
+	for (const auto& decl : mod->declarations) {
+		decl->accept(*this);
+	}
+}
+
+void ast_visitor::visit(std::shared_ptr<conversion_declaration> conv) {
 
 }
 
-void ast_visitor::visit(std::shared_ptr<conversion_decleration> conv) {
-
-}
-
-void ast_visitor::visit(std::shared_ptr<operator_decleration> op) {
+void ast_visitor::visit(std::shared_ptr<operator_declaration> op) {
 
 }
 
@@ -108,6 +110,10 @@ void ast_visitor::visit(std::shared_ptr<literal> literal) {
 
 }
 
+void ast_visitor::visit(std::shared_ptr<import_statement> import_stmt) {
+	
+}
+
 void ast_visitor::visit(std::shared_ptr<block_statement> block) {
 	for (const auto& stmt : block->body) {
 		stmt->accept(*this);
@@ -120,6 +126,11 @@ void ast_visitor::visit(std::shared_ptr<if_statement> if_stmt) {
 	if (if_stmt->else_block) {
 		if_stmt->else_block->accept(*this);
 	}
+}
+
+void ast_visitor::visit(std::shared_ptr<inline_if> inline_if) {
+	inline_if->condition->accept(*this);
+	inline_if->statement->accept(*this);
 }
 
 void ast_visitor::visit(std::shared_ptr<for_loop> for_loop) {

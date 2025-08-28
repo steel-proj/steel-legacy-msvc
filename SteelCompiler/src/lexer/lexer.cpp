@@ -8,6 +8,52 @@ std::vector<token> lexer::tokenize() {
 	for (size_t i = 0; i < source.length(); i++) {
 		char c = source[i];
 
+		if (i + 1 < source.length() && source[i] == '/' && source[i + 1] == '/') {
+			if (!word.empty()) {
+				add_token(word);
+				word.clear();
+			}
+
+			// single line comment, skip to end of line
+			i += 2;
+			column += 2;
+			while (i < source.length() && source[i] != '\n') {
+				i++;
+				column++;
+			}
+			i--; // step back so the for loop can increment
+			continue;
+		}
+		else if (i + 1 < source.length() && source[i] == '/' && source[i + 1] == '*') {
+			if (!word.empty()) {
+				add_token(word);
+				word.clear();
+			}
+
+			// multi line comment, skip to closing */
+			i += 2;
+			column += 2;
+			while (i + 1 < source.length() && !(source[i] == '*' && source[i + 1] == '/')) {
+				if (source[i] == '\n') {
+					line++;
+					column = 1;
+				}
+				else {
+					column++;
+				}
+				i++;
+			}
+			if (i + 1 >= source.length()) {
+				// unterminated comment
+				ERROR(ERR_UNTERMINATED_COMMENT, { line, column });
+				return tokens;
+			}
+			// skip closing */
+			i += 1;
+			column += 2;
+			continue;
+		}
+
 		// skip whitespace
 		if (c == ' ') {
 			if (!word.empty()) {

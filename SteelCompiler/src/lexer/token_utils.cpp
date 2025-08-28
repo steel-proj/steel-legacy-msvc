@@ -80,8 +80,10 @@ const std::map<std::string, token_type>& get_keywords() {
 		{"this", TT_THIS},
 		{"base", TT_BASE},
 		{"module", TT_MODULE},
-		{"export", TT_EXPORT},
 		{"import", TT_IMPORT},
+		{"const", TT_CONST},
+		{"static", TT_STATIC},
+		{"export", TT_EXPORT},
 		{"and", TT_AND},
 		{"or", TT_OR},
 	};
@@ -141,6 +143,10 @@ const std::map<char, token_type>& get_grammars() {
 		{'}', TT_RBRACE},
 		{'[', TT_LBRACKET},
 		{']', TT_RBRACKET},
+		{'^', TT_HAT},
+		{'&', TT_AMPERSAND},
+		{'#', TT_HASH},
+		{'$', TT_DOLLAR},
 	};
 	return grammars;
 }

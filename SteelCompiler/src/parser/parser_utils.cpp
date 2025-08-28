@@ -2,6 +2,19 @@
 
 #include "types/types.h"
 #include "types/custom_types.h"
+#include "types/container_types.h"
+
+data_type_modifier to_type_modifier(token_type tt) {
+	data_type_modifier mod;
+	switch (tt) {
+	case TT_CONST:
+		mod = DTM_CONST;
+		break;
+	default:
+		mod = DTM_NONE;
+	}
+	return mod;
+}
 
 primitive_type to_primitive(token_type tt) {
     primitive_type dt;
@@ -61,6 +74,16 @@ type_ptr to_data_type(primitive_type pt) {
 
 std::shared_ptr<class data_type> to_data_type(const std::string& type_name) {
 	return std::make_shared<custom_type>(type_name);
+}
+
+type_ptr make_ptr(type_ptr base_type) {
+	return std::make_shared<pointer_type>(base_type);
+}
+type_ptr make_array(type_ptr base_type) {
+	return std::make_shared<array_type>(base_type);
+}
+type_ptr make_array(type_ptr base_type, size_t size) {
+	return std::make_shared<array_type>(base_type, size);
 }
 
 bool is_numeric(primitive_type primitive) {

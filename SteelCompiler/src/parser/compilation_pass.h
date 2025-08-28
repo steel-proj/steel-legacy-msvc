@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdarg>
 #include <cstdio>
+#include <memory>
 
 #include "../lexer/token.h"
 #include "../error/error_catalog.h"
@@ -13,21 +14,20 @@
 #define WARN_TOKEN(code, tk, ...)   report_warning_token(code, tk, __VA_ARGS__)
 #define WARN(code, pos, ...)  report_warning(code, pos, __VA_ARGS__)
 
-struct error {
-    std::string code;
-    std::string message;
-    position pos;
-};
-
 class compilation_pass {
 public:
+	compilation_pass(std::shared_ptr<compilation_unit> unit)
+		: pass_unit(unit) {
+	}
+
     std::vector<error> errors;
+    std::shared_ptr<compilation_unit> pass_unit;
 
     inline bool has_errors() const {
         return !errors.empty();
     }
 
-    inline const std::vector<error>& get_errors() const {
+    inline std::vector<error> get_errors() const {
         return errors;
     }
 
@@ -60,15 +60,15 @@ protected:
 
 private:
     void add_error(error_code code_enum, size_t line, size_t column, va_list args) {
-        const error_info& info = error_catalog::get_error_info(code_enum);
-        std::string formatted = vformat(info.message, args);
-        errors.push_back({ info.code, formatted, line, column });
+        error_info info = error_catalog::get_error_info(code_enum);
+        info.message = vformat(info.message, args);
+        errors.push_back({ info, { line, column }, ERR_ERROR, pass_unit });
     }
 
     void add_warning(warning_code code_enum, size_t line, size_t column, va_list args) {
-        const error_info& info = error_catalog::get_warning_info(code_enum);
-        std::string formatted = vformat(info.message, args);
-        errors.push_back({ info.code, formatted, line, column });
+        error_info info = error_catalog::get_warning_info(code_enum);
+        info.message = vformat(info.message, args);
+        errors.push_back({ info, { line, column }, ERR_WARNING, pass_unit });
     }
 
     static std::string vformat(std::string fmt, va_list args) {

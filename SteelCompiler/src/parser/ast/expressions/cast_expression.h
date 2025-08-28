@@ -22,6 +22,9 @@ public:
 	}
 
 	type_ptr type() const override {
+		if (!cast_type) {
+			return data_type::unknown;
+		}
 		return cast_type;
 	}
 	bool is_rvalue() const override {

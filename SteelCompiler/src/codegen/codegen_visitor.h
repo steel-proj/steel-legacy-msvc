@@ -21,7 +21,7 @@ private:
 
 	std::string pseudo;
 
-	std::map<int, function_decleration*> functions;
+	std::map<int, function_declaration*> functions;
 
 	size_t line;
 };

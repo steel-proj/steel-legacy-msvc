@@ -7,35 +7,29 @@
 #include "../parser/ast/ast.h"
 #include "../parser/types/custom_types.h"
 
-void interpreter_visitor::visit(std::shared_ptr<program> program) {
+void interpreter_visitor::begin(std::shared_ptr<class function_declaration> entry_point) {
 	std::cout << "Starting execution...\n" << std::endl;
 
-	auto main_func = sym_table->get_function("Main", to_data_type(DT_INT));
-	if (main_func == nullptr) {
-		if (sym_table->get_function("Main")) {
-			throw_exception("Main function must return int", position{ 0, 0 });
-		}
-		throw_exception("No Main function found", position{ 0, 0 });
-	}
-	enter_function(main_func, {});
+	enter_function(entry_point, {});
 
 	// execution finished
 	std::cout << "\nExecution finished successfully.\nExit code: " << expression_result->as_int() << std::endl;
 }
-void interpreter_visitor::visit(std::shared_ptr<function_decleration> func) {
+
+void interpreter_visitor::visit(std::shared_ptr<function_declaration> func) {
 	func->body->accept(*this);
 }
-void interpreter_visitor::visit(std::shared_ptr<variable_decleration> var) {
+void interpreter_visitor::visit(std::shared_ptr<variable_declaration> var) {
 	if (var->initializer) {
 		// handle initializer list for custom types
 		if (auto init_list = std::dynamic_pointer_cast<initializer_list>(var->initializer)) {
 			// check if type is custom
 			auto custom = std::dynamic_pointer_cast<custom_type>(var->type);
-			if (custom && custom->decleration) {
+			if (custom && custom->declaration) {
 				auto obj = std::make_shared<runtime_value>(*var->type, "");
 				// assign initializer values to fields
 				for (size_t i = 0; i < init_list->values.size(); i++) {
-					auto member_decl = custom->decleration->fields[i];
+					auto member_decl = custom->declaration->fields[i];
 					init_list->values[i]->accept(*this);
 					obj->set_member(member_decl->identifier, std::make_shared<runtime_value>(*expression_result));
 				}
@@ -45,11 +39,10 @@ void interpreter_visitor::visit(std::shared_ptr<variable_decleration> var) {
 		}
 		// handle constructor call for custom types
 		if (auto ctor_call = std::dynamic_pointer_cast<constructor_call>(var->initializer)) {
-			auto custom_type_decl = sym_table->get_type(ctor_call->type_name);
-			if (custom_type_decl) {
-				auto obj = std::make_shared<runtime_value>(*custom_type_decl->type());
+			if (ctor_call->type_decl) {
+				auto obj = std::make_shared<runtime_value>(*ctor_call->type_decl->type());
 				// find matching constructor
-				auto ctor_decl = ctor_call->decleration;
+				auto ctor_decl = ctor_call->declaration;
 				if (ctor_decl) {
 					// push scope for constructor
 					push_scope();
@@ -68,7 +61,7 @@ void interpreter_visitor::visit(std::shared_ptr<variable_decleration> var) {
 					pop_scope();
 				}
 				// initialize fields to default if not set
-				for (auto& member : custom_type_decl->fields) {
+				for (auto& member : ctor_call->type_decl->fields) {
 					obj->set_member(member->identifier, std::make_shared<runtime_value>(*member->type, ""));
 				}
 				add_var(var->identifier, obj);
@@ -81,9 +74,9 @@ void interpreter_visitor::visit(std::shared_ptr<variable_decleration> var) {
 	else {
 		// handle default initialization for custom types
 		auto custom = std::dynamic_pointer_cast<custom_type>(var->type);
-		if (custom && custom->decleration) {
+		if (custom && custom->declaration) {
 			auto obj = std::make_shared<runtime_value>(*var->type, "");
-			for (auto& member : custom->decleration->fields) {
+			for (auto& member : custom->declaration->fields) {
 				obj->set_member(member->identifier, std::make_shared<runtime_value>(*member->type, ""));
 			}
 			add_var(var->identifier, obj);
@@ -92,7 +85,7 @@ void interpreter_visitor::visit(std::shared_ptr<variable_decleration> var) {
 		add_var(var->identifier, std::make_shared<runtime_value>(*var->type, ""));
 	}
 }
-void interpreter_visitor::visit(std::shared_ptr<type_decleration> decl) {
+void interpreter_visitor::visit(std::shared_ptr<type_declaration> decl) {
 
 }
 void interpreter_visitor::visit(std::shared_ptr<expression_statement> expr) {
@@ -385,7 +378,7 @@ void interpreter_visitor::visit(std::shared_ptr<function_call> func_call) {
 		member_expr->object->accept(*this);
 		auto obj_ptr = std::make_shared<runtime_value>(*expression_result);
 		set_this(obj_ptr);
-		enter_function(func_call->decleration, func_call->args);
+		enter_function(func_call->declaration, func_call->args);
 		remove_this();
 		return;
 	}
@@ -397,16 +390,16 @@ void interpreter_visitor::visit(std::shared_ptr<function_call> func_call) {
 		expression_result = std::make_shared<runtime_value>(data_type(DT_VOID), "");
 		return;
 	}
-	enter_function(func_call->decleration, func_call->args);
+	enter_function(func_call->declaration, func_call->args);
 }
 void interpreter_visitor::visit(std::shared_ptr<constructor_call> ctor_call) {
-	auto custom_type_decl = sym_table->get_type(ctor_call->type_name);
+	auto& custom_type_decl = ctor_call->type_decl;
 	if (custom_type_decl) {
 		auto obj = std::make_shared<runtime_value>(data_type(DT_UNKNOWN), "");
 		for (auto& member : custom_type_decl->fields) {
 			obj->set_member(member->identifier, std::make_shared<runtime_value>(*member->type, ""));
 		}
-		auto& ctor_decl = ctor_call->decleration;
+		auto& ctor_decl = ctor_call->declaration;
 		if (ctor_decl != nullptr) {
 			push_scope();
 			set_this(obj);
@@ -532,7 +525,7 @@ void interpreter_visitor::remove_this() {
 	this_object = nullptr;
 }
 
-void interpreter_visitor::enter_function(std::shared_ptr<function_decleration> func, std::vector<std::shared_ptr<expression>> args) {
+void interpreter_visitor::enter_function(std::shared_ptr<function_declaration> func, std::vector<std::shared_ptr<expression>> args) {
 	function_stack.push_back(func);
 	push_scope();
 	// add function parameters to scope

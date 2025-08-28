@@ -8,21 +8,22 @@
 #include "compilation_pass.h"
 #include "ast/ast.h"
 #include "symbolics/symbol_table.h"
+#include "modifiers/modifiers.h"
 #include "../lexer/token.h"
 
 class parser : public compilation_pass {
 public:
-	parser(std::vector<token>& tokens)
-		: tokens(tokens) {}
+	parser(std::shared_ptr<compilation_unit> unit, std::vector<token>& tokens)
+		: unit(unit), tokens(tokens), compilation_pass(unit) {}
 
-	// ast parse functions
-	void parse(std::shared_ptr<program> prg);
-	ast_ptr parse_decleration();
-	ast_ptr parse_constructor_decleration(token& identifier_token);
-	ast_ptr parse_function_decleration(type_ptr type, token& identifier_token);
-	ast_ptr parse_variable_decleration(type_ptr type, token& identifier_token);
-	ast_ptr parse_type_decleration(token& kind_token);
+	void parse();
+	ast_ptr parse_declaration();
+	ast_ptr parse_constructor_declaration(token& identifier_token);
+	ast_ptr parse_function_declaration(type_ptr type, token& identifier_token);
+	ast_ptr parse_variable_declaration(type_ptr type, token& identifier_token);
+	ast_ptr parse_type_declaration(token& kind_token);
 	ast_ptr parse_constructor_call(token& type_token);
+	type_ptr parse_type();
 	ast_ptr parse_parameter();
 	ast_ptr parse_statement();
 	ast_ptr parse_block();
@@ -38,10 +39,12 @@ public:
 	ast_ptr parse_initializer_list();
 
 	// helper functions
+	modifiers parse_modifiers();
 	std::vector<std::shared_ptr<expression>> parse_expression_list(token_type end = TT_RPAREN);
-	std::vector<std::shared_ptr<variable_decleration>> parse_parameter_list(token_type end = TT_RPAREN);
+	std::vector<std::shared_ptr<variable_declaration>> parse_parameter_list(token_type end = TT_RPAREN);
 
 private:
+	std::shared_ptr<compilation_unit> unit;
 	std::vector<token>& tokens;
 	size_t current = 0;
 
@@ -53,6 +56,7 @@ private:
 	token& previous();
 	token& consume();
 	bool match_typename();
+	bool match_modifier();
 	bool match(int count, ...);
 	bool match(token_type type);
 	bool check(token_type type);

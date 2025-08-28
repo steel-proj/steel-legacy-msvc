@@ -1,14 +1,17 @@
 #pragma once
 
-#include "program.h"
-#include "declerations/function_decleration.h"
-#include "declerations/constructor_decleration.h"
-#include "declerations/variable_decleration.h"
-#include "declerations/type_decleration.h"
-#include "declerations/module_decleration.h"
-#include "declerations/conversion_decleration.h"
-#include "declerations/operator_decleration.h"
+#include "compilation_unit.h"
+#include "declarations/declaration.h"
+#include "declarations/function_declaration.h"
+#include "declarations/constructor_declaration.h"
+#include "declarations/variable_declaration.h"
+#include "declarations/type_declaration.h"
+#include "declarations/module_declaration.h"
+#include "declarations/conversion_declaration.h"
+#include "declarations/operator_declaration.h"
 #include "statements/block_statement.h"
+#include "statements/import_statement.h"
+#include "statements/inline_if.h"
 #include "statements/control_flow/return_statement.h"
 #include "statements/control_flow/if_statement.h"
 #include "statements/control_flow/for_loop.h"
@@ -35,7 +38,7 @@ inline std::shared_ptr<T> make_ast(token& ast_token, Args... args) {
 	node->position = ast_token.pos;
 	return node;
 }
-template<typename T, typename ...Args>
+template<typename T, typename... Args>
 inline std::shared_ptr<T> make_ast(Args... args) {
 	static_assert(std::is_base_of<ast_node, T>::value, "T must derive from ast_node");
 	std::shared_ptr<T> node = std::make_shared<T>(std::forward<Args>(args)...);

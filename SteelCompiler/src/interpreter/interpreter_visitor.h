@@ -12,14 +12,15 @@
 
 class interpreter_visitor : public ast_visitor {
 public:
-	interpreter_visitor(std::shared_ptr<symbol_table> sym_table)
-		: sym_table(sym_table), this_object(nullptr) {
+	interpreter_visitor()
+		: this_object(nullptr) {
 	}
 
-	virtual void visit(std::shared_ptr<class program> program) override;
-	virtual void visit(std::shared_ptr<class function_decleration> func) override;
-	virtual void visit(std::shared_ptr<class variable_decleration> var) override;
-	virtual void visit(std::shared_ptr<class type_decleration> decl) override;
+	void begin(std::shared_ptr<class function_declaration> entry_point);
+
+	virtual void visit(std::shared_ptr<class function_declaration> func) override;
+	virtual void visit(std::shared_ptr<class variable_declaration> var) override;
+	virtual void visit(std::shared_ptr<class type_declaration> decl) override;
 	virtual void visit(std::shared_ptr<class expression_statement> expr) override;
 	virtual void visit(std::shared_ptr<class binary_expression> expr) override;
 	virtual void visit(std::shared_ptr<class assignment_expression> expr) override;
@@ -39,8 +40,6 @@ public:
 	virtual void visit(std::shared_ptr<class return_statement> ret_stmt) override;
 
 private:
-	std::shared_ptr<symbol_table> sym_table;
-
 	std::vector<std::map<std::string, std::shared_ptr<runtime_value>>> variables;
 	void push_scope();
 	void pop_scope();
@@ -54,8 +53,8 @@ private:
 	void set_this(std::shared_ptr<runtime_value> obj);
 	void remove_this();
 
-	std::vector<std::shared_ptr<function_decleration>> function_stack;
-	void enter_function(std::shared_ptr<function_decleration> func, std::vector<std::shared_ptr<expression>> args);
+	std::vector<std::shared_ptr<function_declaration>> function_stack;
+	void enter_function(std::shared_ptr<function_declaration> func, std::vector<std::shared_ptr<expression>> args);
 
 	void throw_exception(std::string message, position pos);
 };
