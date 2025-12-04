@@ -1,2 +1,2 @@
-<h1>Steel</h1>
-<p>Steel is a C-like programming language that prioritises speed and safety. Attempting to prevent 99% of bugs at compile time, ensuring your programs can run faster than ever and you won't have to waste valuable time worrying about potentially safety issues.</p>
+> <h2>Important notice:</h2>
+> <p>This version of Steel is deprecated as of September 6th 2025. The new version uses CMake for cross-platform build support and can be found <a href="https://github.com/swzldev/Steel">here</a>.</p>
